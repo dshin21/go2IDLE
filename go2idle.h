@@ -2,6 +2,7 @@
 #define GO2IDLE_H
 
 #include <QMainWindow>
+#include <QFileDialog>
 
 namespace Ui {
 class go2IDLE;
@@ -17,6 +18,9 @@ public:
 
 private:
     Ui::go2IDLE *ui;
+
+public slots:
+    void select_file();
 };
 
 #endif // GO2IDLE_H

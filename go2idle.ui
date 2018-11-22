@@ -45,13 +45,6 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_bit_error_rate">
-       <property name="text">
-        <string>Bit Error Rate:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QLabel" name="label_acks">
        <property name="text">
         <string># ACKs:</string>
@@ -62,6 +55,13 @@
       <widget class="QLabel" name="label_naks">
        <property name="text">
         <string># NAKs:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_bit_error_rate">
+       <property name="text">
+        <string>Bit Error Rate:</string>
        </property>
       </widget>
      </item>
