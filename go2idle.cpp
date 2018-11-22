@@ -7,6 +7,7 @@ go2IDLE::go2IDLE(QWidget *parent) :
 {
     ui->setupUi(this);
     connect(ui->menu_select_file, &QAction::triggered, this, &go2IDLE::select_file);
+    connect(ui->menu_disconnect, &QAction::triggered, this, &QWidget::close);
 }
 
 go2IDLE::~go2IDLE()

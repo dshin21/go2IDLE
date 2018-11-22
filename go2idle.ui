@@ -124,11 +124,28 @@
   </action>
   <action name="menu_disconnect">
    <property name="text">
-    <string>Disconnect</string>
+    <string>Exit</string>
    </property>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>menu_disconnect</sender>
+   <signal>triggered()</signal>
+   <receiver>go2IDLE</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>200</x>
+     <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
