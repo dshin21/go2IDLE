@@ -22,7 +22,7 @@ public:
     bool is_processed;
     QByteArray master_buffer;
     QString data_buffer;
-    vector<QChar> control_buffer;
+    QByteArray control_buffer;
     IO(QObject *parent);
     void send_EOT();
     void send_ENQ();

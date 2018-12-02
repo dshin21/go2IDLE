@@ -80,22 +80,42 @@ void IO::read_from_port()
 void IO::handle_control_buffer()
 {
     //char after SYN
-    if(control_buffer[1] == DC1 || control_buffer[1] == DC2 && control_buffer.size() == 3){
-        //its a data frame
+    if(control_buffer[1] == (char)DC1 || control_buffer[1] == (char)DC2 && control_buffer.size() == 3){
         qDebug() << "its a data frame";
         emit ready_to_print_signal();
     }else{
         //its a control frame
+        switch (control_buffer.at(1)) {
+        case DC1:
+            qDebug() << "DC1 received";
+            break;
+        case DC2:
+            qDebug() << "DC2 received";
+            break;
+        case EOT:
+            qDebug() << "EOT received";
+            break;
+        case ENQ:
+            qDebug() << "ENQ received";
+            break;
+        case ACK:
+            qDebug() << "ACK received";
+            break;
+        case NAK:
+            qDebug() << "NAK received";
+            break;
+        default:
+            break;
+        }
         qDebug() << "its a control frame";
     }
 }
-//TODO: make handle_data_frame to print
-
 
 void IO::process_frames(QString data){
     qDebug() << data;
-
     data_buffer = "";
+    control_buffer.clear();
+
     for(int i = 0; i < data.length(); ++i){
         QChar current_char = data.at(i);
         if(!current_char.isNull()
@@ -105,8 +125,7 @@ void IO::process_frames(QString data){
             data_buffer += current_char;
         }else{
             if(!current_char.isNull()){
-                if(find(control_buffer.begin(), control_buffer.end(), current_char) == control_buffer.end())
-                    control_buffer.push_back(current_char);
+                control_buffer+= (current_char);
             }
         }
     }

@@ -20,7 +20,6 @@ go2IDLE::~go2IDLE()
     delete ui;
 }
 
-
 void go2IDLE::display_data(){
     QPlainTextEdit *text_edit = ui->console;
     text_edit->insertPlainText(io_thread->data_buffer);
