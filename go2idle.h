@@ -24,7 +24,7 @@ private:
 
 
 public slots:
-    void display_data(const QString data);
+    void display_data();
 };
 
 #endif // GO2IDLE_H

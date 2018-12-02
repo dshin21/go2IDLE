@@ -12,6 +12,9 @@ IO::IO(QObject *parent)
     init_port();
     connect(serial_port, &QSerialPort::readyRead, this, &IO::read_from_port, Qt::QueuedConnection);
     connect(this, &IO::write_to_port_signal, this, &IO::write_to_port, Qt::QueuedConnection);
+    //if incoming frame, process them
+    connect(this, &IO::data_received_signal, this, &IO::process_frames);
+
 }
 
 void IO::init_port(){
@@ -33,22 +36,22 @@ void IO::write_to_port(const QByteArray &data)
 
 void IO::send_EOT()
 {
-    emit write_to_port_signal(QByteArray(1,EOT));
+    emit write_to_port_signal(EOT_FRAME);
 }
 
 void IO::send_ENQ()
 {
-    emit write_to_port_signal(QByteArray(1,ENQ));
+    emit write_to_port_signal(ENQ_FRAME);
 }
 
 void IO::send_ACK()
 {
-    emit write_to_port_signal(QByteArray(1,ACK));
+    emit write_to_port_signal(ACK_FRAME);
 }
 
 void IO::send_NAK()
 {
-    emit write_to_port_signal(QByteArray(1,NAK));
+    emit write_to_port_signal(NAK_FRAME);
 }
 
 void IO::send_DATA_FRAME()
@@ -80,6 +83,10 @@ void IO::handle_control_buffer()
     if(control_buffer[1] == DC1 || control_buffer[1] == DC2 && control_buffer.size() == 3){
         //its a data frame
         qDebug() << "its a data frame";
+        emit ready_to_print_signal();
+    }else{
+        //its a control frame
+        qDebug() << "its a control frame";
     }
 }
 //TODO: make handle_data_frame to print
@@ -103,11 +110,7 @@ void IO::process_frames(QString data){
             }
         }
     }
-//    if(!is_processed){
-        handle_control_buffer();
-//        is_processed = true;
-//    }
-
+    handle_control_buffer();
 }
 
 //TODO:
