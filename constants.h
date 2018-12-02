@@ -16,15 +16,15 @@ const int DC2 = 0x12;
 const QByteArray DC2_FRAME = QByteArray(1, DC2);
 
 const int EOT = 0x04;
-const QByteArray EOT_FRAME = SYN_FRAME + QByteArray(1, EOT);
+const QByteArray EOT_FRAME = SYN_FRAME + QByteArray(1, EOT) + DC1_FRAME;
 
 const int ENQ = 0x05;
-const QByteArray ENQ_FRAME = SYN_FRAME + QByteArray(1, ENQ);
+const QByteArray ENQ_FRAME = SYN_FRAME + QByteArray(1, ENQ) + DC1_FRAME;
 
 const int ACK = 0x06;
-const QByteArray ACK_FRAME = SYN_FRAME + QByteArray(1, ACK);
+const QByteArray ACK_FRAME = SYN_FRAME + QByteArray(1, ACK) + DC1_FRAME;
 
 const int NAK = 0x15;
-const QByteArray NAK_FRAME = SYN_FRAME + QByteArray(1, NAK);
+const QByteArray NAK_FRAME = SYN_FRAME + QByteArray(1, NAK)  + DC1_FRAME;
 
 #endif // CONSTANTS_H

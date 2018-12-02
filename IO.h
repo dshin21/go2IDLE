@@ -4,6 +4,7 @@
 #include <QSerialPort>
 #include <QByteArray>
 #include <QThread>
+#include <vector>
 #include "CRC.h"
 #include "constants.h"
 
@@ -16,8 +17,12 @@ private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
 
+
 public:
-    QByteArray buffer;
+    bool is_processed;
+    QByteArray master_buffer;
+    QString data_buffer;
+    vector<QChar> control_buffer;
     IO(QObject *parent);
     void send_EOT();
     void send_ENQ();
@@ -26,19 +31,23 @@ public:
     void send_DATA_FRAME();
     QByteArray make_frame(const QByteArray& data);
 
-    void handleBuffer();
+    void handle_control_buffer();
 
     inline FileHandler* get_file_handler() const {return file_handler;}
+
+
 
 public slots:
     void init_port();
     void write_to_port(const QByteArray &data);
     void read_from_port();
+    void process_frames(QString data);
 
 
 signals:
     void write_to_port_signal(const QByteArray &frame);
-    void data_received_signal(const QString data);
+    void data_received_signal(QString data);
+    void ready_to_print_signal();
 };
 
 #endif // IO_H
