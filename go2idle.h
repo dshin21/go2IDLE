@@ -22,6 +22,7 @@ private:
     Ui::go2IDLE *ui;
     IO* io_thread;
 
+
 public slots:
     void display_data(const QString data);
 };
