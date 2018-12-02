@@ -1,6 +1,8 @@
 #ifndef GO2IDLE_H
 #define GO2IDLE_H
 
+#include "IO.h"
+
 #include <QMainWindow>
 #include <QFileDialog>
 
@@ -18,9 +20,11 @@ public:
 
 private:
     Ui::go2IDLE *ui;
+    IO* io_thread;
+
 
 public slots:
-    void select_file();
+    void display_data(const QString data);
 };
 
 #endif // GO2IDLE_H

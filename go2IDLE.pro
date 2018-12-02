@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -26,10 +26,16 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        go2idle.cpp
+        go2idle.cpp \
+    IO.cpp \
+    filehandler.cpp
 
 HEADERS += \
-        go2idle.h
+        go2idle.h \
+    IO.h \
+    CRC.h \
+    constants.h \
+    filehandler.h
 
 FORMS += \
         go2idle.ui

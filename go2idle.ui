@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>401</width>
-    <height>358</height>
+    <height>389</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -27,13 +27,13 @@
      <bool>false</bool>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>240</y>
-      <width>114</width>
-      <height>72</height>
+      <width>135</width>
+      <height>91</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -67,13 +67,13 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>310</x>
       <y>240</y>
-      <width>79</width>
-      <height>56</height>
+      <width>97</width>
+      <height>67</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -104,7 +104,7 @@
      <x>0</x>
      <y>0</y>
      <width>401</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSettings">
@@ -112,6 +112,7 @@
      <string>Settings</string>
     </property>
     <addaction name="menu_select_file"/>
+    <addaction name="menu_settings"/>
     <addaction name="menu_disconnect"/>
    </widget>
    <addaction name="menuSettings"/>
@@ -125,6 +126,11 @@
   <action name="menu_disconnect">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="menu_settings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>
