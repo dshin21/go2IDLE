@@ -22,7 +22,7 @@ public:
     bool is_processed;
     QByteArray master_buffer;
     QString data_buffer;
-    vector<QChar> control_buffer;
+    QByteArray control_buffer;
     IO(QObject *parent);
     void send_EOT();
     void send_ENQ();
@@ -35,7 +35,10 @@ public:
 
     inline FileHandler* get_file_handler() const {return file_handler;}
 
-
+    void received_ENQ();
+    void received_EOT();
+    void received_NAK();
+    void received_ACK();
 
 public slots:
     void init_port();

@@ -2,6 +2,14 @@
 #define CONSTANTS_H
 #include <QByteArray>
 
+#define IDLE 1 // SENT EOT
+#define REQUEST_LINE 2 // SENT ENQ
+#define SEND_STATE 3 // SENT FRAME
+#define WAIT_RESPONSE 4 // SENT FRAME
+#define RESEND_FRAME 5 // GOT NAK
+
+static int CURRENT_STATE = 1;
+
 const int DATA_FRAME_LENGTH = 1024;
 const int DATA_LENGTH = 1021;
 const int CONTROL_FRAME_LENGTH = 3;
@@ -26,5 +34,11 @@ const QByteArray ACK_FRAME = SYN_FRAME + QByteArray(1, ACK) + DC1_FRAME;
 
 const int NAK = 0x15;
 const QByteArray NAK_FRAME = SYN_FRAME + QByteArray(1, NAK)  + DC1_FRAME;
+
+static int NUM_ACK = 0;
+static int NUM_NAK = 0;
+static int BE_RATE = 0;
+static int NUM_FRAME_SENT = 0;
+
 
 #endif // CONSTANTS_H
