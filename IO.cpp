@@ -110,12 +110,7 @@ void IO::handle_control_buffer()
         qDebug() << "its a control frame";
     }
 }
-<<<<<<< HEAD
-#define IDLE 1 // SENT EOT
-#define REQUEST_LINE 2 // SENT ENQ
-#define SEND_STATE 3 // SENT FRAME
-#define WAIT_RESPONSE 4 // SENT FRAME
-#define RESEND_FRAME 5 // GOT NAK
+
 
 void IO::received_ENQ(){
     switch(CURRENT_STATE){
@@ -207,8 +202,7 @@ void IO::received_ACK(){
             break;
     }
 }
-=======
->>>>>>> 4e8e632ebd18d8f3be4586e22c5b30dd243d2841
+
 
 void IO::process_frames(QString data){
     qDebug() << data;
