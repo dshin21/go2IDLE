@@ -15,6 +15,10 @@ IO::IO(QObject *parent)
     //if incoming frame, process them
     connect(this, &IO::data_received_signal, this, &IO::process_frames);
 
+    qsrand(0);
+    ENQ_backoff_Timer = new QTimer(this);
+    backingOff = false;
+    connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
 }
 
 void IO::init_port(){
@@ -41,7 +45,16 @@ void IO::send_EOT()
 
 void IO::send_ENQ()
 {
+    CURRENT_STATE = REQUEST_LINE;
     emit write_to_port_signal(ENQ_FRAME);
+
+}
+
+void IO::send_ENQ_after_backoff(){
+    if(backingOff){
+        emit write_to_port_signal(ENQ_FRAME);
+        backingOff = false;
+    }
 }
 
 void IO::send_ACK()
@@ -96,7 +109,7 @@ void IO::handle_control_buffer()
             qDebug() << "EOT received";
             break;
         case ENQ:
-            qDebug() << "ENQ received";
+            received_ENQ();
             break;
         case ACK:
             qDebug() << "ACK received";
@@ -115,9 +128,19 @@ void IO::handle_control_buffer()
 void IO::received_ENQ(){
     switch(CURRENT_STATE){
         case IDLE:
-
+            send_ACK();
             break;
         case REQUEST_LINE:
+            if(ENQ_backoff_Timer->isActive() && backingOff == true){
+                send_ACK();
+                CURRENT_STATE = RECEIVE_FRAME;
+                backingOff = false;
+            }
+            if(ENQ_backoff_Timer->isActive() == false){
+
+                ENQ_backoff_Timer->start(qrand() % 500);
+                backingOff = true;
+            }
 
             break;
         case SEND_STATE:
@@ -128,6 +151,9 @@ void IO::received_ENQ(){
             break;
         case RESEND_FRAME:
             //do nothing
+            break;
+        case RECEIVE_FRAME:
+         //do nothing
             break;
         default:
             break;

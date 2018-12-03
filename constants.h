@@ -7,6 +7,7 @@
 #define SEND_STATE 3 // SENT FRAME
 #define WAIT_RESPONSE 4 // SENT FRAME
 #define RESEND_FRAME 5 // GOT NAK
+#define RECEIVE_FRAME 6 // sent ack
 
 static int CURRENT_STATE = 1;
 

@@ -5,6 +5,7 @@
 #include <QByteArray>
 #include <QThread>
 #include <vector>
+#include <QTimer>
 #include "CRC.h"
 #include "constants.h"
 
@@ -16,6 +17,8 @@ class IO : public QThread
 private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
+    QTimer* ENQ_backoff_Timer;
+    bool backingOff;
 
 
 public:
@@ -39,13 +42,14 @@ public:
     void received_EOT();
     void received_NAK();
     void received_ACK();
+    //void idle_sent_eot();
 
 public slots:
     void init_port();
     void write_to_port(const QByteArray &data);
     void read_from_port();
     void process_frames(QString data);
-
+    void send_ENQ_after_backoff();
 
 signals:
     void write_to_port_signal(const QByteArray &frame);
