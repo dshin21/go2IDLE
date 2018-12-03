@@ -115,19 +115,19 @@ void IO::handle_control_buffer()
 void IO::received_ENQ(){
     switch(CURRENT_STATE){
         case IDLE:
-            qDebug() << "DC1 received";
+
             break;
         case REQUEST_LINE:
-            qDebug() << "DC2 received";
+
             break;
         case SEND_STATE:
-            qDebug() << "EOT received";
+            //do nothing
             break;
         case WAIT_RESPONSE:
-            qDebug() << "ENQ received";
+            //do nothing
             break;
         case RESEND_FRAME:
-            qDebug() << "ACK received";
+            //do nothing
             break;
         default:
             break;
