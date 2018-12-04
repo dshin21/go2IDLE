@@ -10,6 +10,12 @@ IO::IO(QObject *parent)
       is_processed(false)
 {
     init_port();
+    timer = new QTimer(this);
+    timer->start(TIMEOUT);  //assume we start connection right away without need of start
+
+    //if timed out, act depending on state
+    connect(timer, SIGNAL(timeout()), this, SLOT(timed_out()));
+
     connect(serial_port, &QSerialPort::readyRead, this, &IO::read_from_port, Qt::QueuedConnection);
     connect(this, &IO::write_to_port_signal, this, &IO::write_to_port, Qt::QueuedConnection);
     //if incoming frame, process them
@@ -26,6 +32,32 @@ void IO::init_port(){
     serial_port->setParity(QSerialPort::NoParity);
     serial_port->setStopBits(QSerialPort::OneStop);
     serial_port->setFlowControl(QSerialPort::NoFlowControl);
+}
+
+void IO::timed_out(){
+    switch(CURRENT_STATE){
+        case IDLE:
+            emit timeout_message("Connection Error! Terminating program.");
+            break;
+        case REQUEST_LINE:
+            CURRENT_STATE = IDLE;
+            emit timeout_message("Request timed out.");
+            break;
+        case SEND_STATE:
+            CURRENT_STATE = IDLE;
+            emit timeout_message("Send state timed out.");
+            break;
+        case WAIT_RESPONSE:
+            CURRENT_STATE = IDLE;
+            emit timeout_message("Waiting for response timed out.");
+            break;
+        case RESEND_FRAME:
+            CURRENT_STATE = IDLE;
+            emit timeout_message("Resend frame timed out.");
+            break;
+        default:
+            break;
+    }
 }
 
 void IO::write_to_port(const QByteArray &data)
@@ -72,6 +104,7 @@ QByteArray IO::make_frame(const QByteArray &data)
 
 void IO::read_from_port()
 {
+    timer->start(TIMEOUT); // restarts the timer
     master_buffer.clear();
     master_buffer += serial_port->readAll();
     emit data_received_signal(master_buffer);

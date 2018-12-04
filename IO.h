@@ -5,6 +5,7 @@
 #include <QByteArray>
 #include <QThread>
 #include <vector>
+#include <QTimer>
 #include "CRC.h"
 #include "constants.h"
 
@@ -16,6 +17,7 @@ class IO : public QThread
 private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
+    QTimer* timer;
 
 
 public:
@@ -42,6 +44,7 @@ public:
 
 public slots:
     void init_port();
+    void timed_out();
     void write_to_port(const QByteArray &data);
     void read_from_port();
     void process_frames(QString data);
@@ -51,6 +54,7 @@ signals:
     void write_to_port_signal(const QByteArray &frame);
     void data_received_signal(QString data);
     void ready_to_print_signal();
+    void timeout_message(QString msg);
 };
 
 #endif // IO_H

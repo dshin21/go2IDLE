@@ -8,8 +8,9 @@
 #define WAIT_RESPONSE 4 // SENT FRAME
 #define RESEND_FRAME 5 // GOT NAK
 
-static int CURRENT_STATE = 1;
+static int CURRENT_STATE = IDLE;
 
+const int TIMEOUT = 30000; // in msecs, this is 30secs
 const int DATA_FRAME_LENGTH = 1024;
 const int DATA_LENGTH = 1021;
 const int CONTROL_FRAME_LENGTH = 3;

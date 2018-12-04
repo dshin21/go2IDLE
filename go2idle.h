@@ -5,6 +5,7 @@
 
 #include <QMainWindow>
 #include <QFileDialog>
+#include <QMessageBox>
 
 namespace Ui {
 class go2IDLE;
@@ -25,6 +26,7 @@ private:
 
 public slots:
     void display_data();
+    void display_msg(QString msg);
 };
 
 #endif // GO2IDLE_H
