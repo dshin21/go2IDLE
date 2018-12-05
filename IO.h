@@ -24,6 +24,7 @@ private:
 public:
     bool is_processed;
     QByteArray master_buffer;
+    QByteArray frame;
     QString data_buffer;
     QByteArray control_buffer;
     IO(QObject *parent);

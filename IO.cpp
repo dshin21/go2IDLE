@@ -87,13 +87,16 @@ void IO::read_from_port()
 {
     master_buffer.clear();
     master_buffer += serial_port->readAll();
-    emit data_received_signal(master_buffer);
+    frame += master_buffer;
+    //qDebug()<<frame;
+    emit data_received_signal(frame);
+
 }
 
 void IO::handle_control_buffer()
 {
     //char after SYN
-    if(control_buffer[1] == (char)DC1 || control_buffer[1] == (char)DC2 && control_buffer.size() == 3){
+    if((control_buffer[1] == (char)DC1 || control_buffer[1] == (char)DC2) && control_buffer.size() != 3){
         qDebug() << "its a data frame";
         emit ready_to_print_signal();
     }else{
@@ -231,24 +234,42 @@ void IO::received_ACK(){
 
 
 void IO::process_frames(QString data){
-    qDebug() << data;
+
     data_buffer = "";
     control_buffer.clear();
 
-    for(int i = 0; i < data.length(); ++i){
-        QChar current_char = data.at(i);
-        if(!current_char.isNull()
-                && (current_char.isLetterOrNumber()
-                    || current_char.isSpace()
-                    || current_char.isPunct())){
-            data_buffer += current_char;
-        }else{
-            if(!current_char.isNull()){
-                control_buffer+= (current_char);
-            }
-        }
+    if(data[0] == (char)SYN
+            && (data[2] == (char)DC1 || data[2] == (char)DC2)){
+
+        control_buffer = data.toUtf8();
+        qDebug() << "it's a control frame!";
+        qDebug() << data;
+         frame.clear();
+        handle_control_buffer();
+    } else {
+       if(frame.size() == 1024){
+           data_buffer = data;
+           qDebug() << "it's a data frame!";
+           qDebug() << data;
+           //check crc
+           frame.clear();
+       }
     }
-    handle_control_buffer();
+
+//    for(int i = 0; i < data.length(); ++i){
+//        QChar current_char = data.at(i);
+//        if(!current_char.isNull()
+//                && (current_char.isLetterOrNumber()
+//                    || current_char.isSpace()
+//                    || current_char.isPunct())){
+//            data_buffer += current_char;
+//        }else{
+//          control_buffer+= (current_char);
+
+//        }
+//    }
+   // handle_control_buffer();
+
 }
 
 //TODO:
