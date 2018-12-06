@@ -18,11 +18,11 @@ IO::IO(QObject *parent)
 
     qsrand(0);
     ENQ_backoff_Timer = new QTimer(this);
-    retransmission_timeout = new QTimer(this);
+    //retransmission_timeout = new QTimer(this);
     resend_counts = 0;
     backingOff = false;
     connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
-    connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
+    //connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
 }
 
 void IO::init_port(){
@@ -63,7 +63,7 @@ void IO::send_ENQ_after_backoff(){
 
 void IO::resend_frame(){
     if(resend_counts < MAX_RESENDS){
-        retransmission_timeout->start(TRANSMISSION_TIMEOUT);
+        //retransmission_timeout->start(TRANSMISSION_TIMEOUT);
         resend_DATA_FRAME();
     }else{
         CURRENT_STATE = IDLE;
@@ -73,24 +73,26 @@ void IO::resend_frame(){
 
 void IO::send_ACK()
 {
+    CURRENT_STATE = RECEIVE_FRAME;
     emit write_to_port_signal(ACK_FRAME);
 }
 
 void IO::send_NAK()
 {
+    CURRENT_STATE = RESEND_FRAME;
     emit write_to_port_signal(NAK_FRAME);
 }
 
 void IO::send_DATA_FRAME()
 {
-    retransmission_timeout->start(TRANSMISSION_TIMEOUT);
+    //retransmission_timeout->start(TRANSMISSION_TIMEOUT);
     emit write_to_port_signal(make_frame(file_handler->get_next()));
 }
 
 void IO::resend_DATA_FRAME()
 {
     resend_counts ++;
-    retransmission_timeout->start(TRANSMISSION_TIMEOUT);
+    //retransmission_timeout->start(TRANSMISSION_TIMEOUT);
     emit write_to_port_signal(make_frame(file_handler->get_prev()));
 
 }
@@ -98,13 +100,22 @@ void IO::resend_DATA_FRAME()
 
 QByteArray IO::make_frame(const QByteArray &data)
 {
-    QByteArray padding = QByteArray(DATA_LENGTH - data.size(), 0x0);
-    uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
-    //TODO: alternate DC1
-    QByteArray frame = SYN_FRAME + DC1_FRAME + data + padding;
-    frame.push_back(crc);
+    if(data.isEmpty()){
+        CURRENT_STATE = IDLE;
 
-    return frame;
+         return EOT_FRAME;
+
+    } else {
+        QByteArray padding = QByteArray(DATA_LENGTH - data.size(), 0x0);
+        uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
+        //TODO: alternate DC1
+        QByteArray frame = SYN_FRAME + DC1_FRAME + data + padding;
+        frame.push_back(crc);
+        return frame;
+    }
+
+
+
 }
 
 void IO::read_from_port()
@@ -129,16 +140,16 @@ void IO::handle_control_buffer()
             qDebug() << "DC2 received";
             break;
         case EOT:
-            qDebug() << "EOT received";
+            received_EOT();
             break;
         case ENQ:
             received_ENQ();
             break;
         case ACK:
-            qDebug() << "ACK received";
+            received_ACK();
             break;
         case NAK:
-            qDebug() << "NAK received";
+            received_NAK();
             break;
         default:
             break;
@@ -187,7 +198,6 @@ void IO::received_EOT(){
 
     switch(CURRENT_STATE){
         case IDLE:
-            CURRENT_STATE = IDLE;
             send_EOT();
             break;
         case REQUEST_LINE:
@@ -196,11 +206,13 @@ void IO::received_EOT(){
             break;
         case SEND_STATE:
             CURRENT_STATE = IDLE;
-            retransmission_timeout->stop();
+            //retransmission_timeout->stop();
             break;
         case RESEND_FRAME:
             break;
         case RECEIVE_FRAME:
+         CURRENT_STATE = IDLE;
+         qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
             break;
         default:
             break;
@@ -215,8 +227,9 @@ void IO::received_NAK(){
         case REQUEST_LINE:
             break;
         case SEND_STATE:
+
             CURRENT_STATE = SEND_STATE;
-            retransmission_timeout->stop();
+            //retransmission_timeout->stop();
             resend_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
@@ -235,13 +248,13 @@ void IO::received_ACK(){
             break;
         case REQUEST_LINE:
             CURRENT_STATE = SEND_STATE;
-            retransmission_timeout->stop();
+            //retransmission_timeout->stop();
             resend_counts = 0;
             send_DATA_FRAME();
             break;
         case SEND_STATE:
             CURRENT_STATE = SEND_STATE;
-            retransmission_timeout->stop();
+            //retransmission_timeout->stop();
             resend_counts = 0;
             send_DATA_FRAME();
             break;
@@ -262,18 +275,20 @@ void IO::process_frames(QString data){
 
     if(data[0] == (char)SYN
             && (data[2] == (char)DC1 || data[2] == (char)DC2)){
-
+ qDebug()<<"entered process frame if " <<frame.size();
         control_buffer = data.toUtf8();
         qDebug() << "it's a control frame!";
         qDebug() << data;
          frame.clear();
         handle_control_buffer();
     } else {
+        qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
            data_buffer = data;
            qDebug() << "it's a data frame!";
            qDebug() << data;
            //check crc
+           send_ACK();
            frame.clear();
        }
     }
@@ -281,5 +296,9 @@ void IO::process_frames(QString data){
 }
 
 //TODO:
-// - timeouts
-// - ENQ and ACKs
+// timeouts
+// differentiate duplicate frames
+// check CRC
+// Deal with exceeding maximum frames 50
+// Idle mode send EOTs
+// connection timeout (almost done) Allan Hsu

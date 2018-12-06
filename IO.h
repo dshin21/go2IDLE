@@ -18,7 +18,7 @@ private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
     QTimer* ENQ_backoff_Timer;
-    QTimer* retransmission_timeout;
+   //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
 
