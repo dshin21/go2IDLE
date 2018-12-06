@@ -9,6 +9,7 @@ IO::IO(QObject *parent)
       file_handler(new FileHandler(this)),
       is_processed(false)
 {
+
     init_port();
     connect(serial_port, &QSerialPort::readyRead, this, &IO::read_from_port, Qt::QueuedConnection);
     connect(this, &IO::write_to_port_signal, this, &IO::write_to_port, Qt::QueuedConnection);
@@ -17,8 +18,11 @@ IO::IO(QObject *parent)
 
     qsrand(0);
     ENQ_backoff_Timer = new QTimer(this);
+    retransmission_timeout = new QTimer(this);
+    resend_counts = 0;
     backingOff = false;
     connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
+    connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
 }
 
 void IO::init_port(){
@@ -57,6 +61,16 @@ void IO::send_ENQ_after_backoff(){
     }
 }
 
+void IO::resend_frame(){
+    if(resend_counts < MAX_RESENDS){
+        retransmission_timeout->start(TRANSMISSION_TIMEOUT);
+        resend_DATA_FRAME();
+    }else{
+        CURRENT_STATE = IDLE;
+        resend_counts = 0;
+    }
+}
+
 void IO::send_ACK()
 {
     emit write_to_port_signal(ACK_FRAME);
@@ -69,8 +83,18 @@ void IO::send_NAK()
 
 void IO::send_DATA_FRAME()
 {
+    retransmission_timeout->start(TRANSMISSION_TIMEOUT);
     emit write_to_port_signal(make_frame(file_handler->get_next()));
 }
+
+void IO::resend_DATA_FRAME()
+{
+    resend_counts ++;
+    retransmission_timeout->start(TRANSMISSION_TIMEOUT);
+    emit write_to_port_signal(make_frame(file_handler->get_prev()));
+
+}
+
 
 QByteArray IO::make_frame(const QByteArray &data)
 {
@@ -95,13 +119,9 @@ void IO::read_from_port()
 
 void IO::handle_control_buffer()
 {
-    //char after SYN
-    if((control_buffer[1] == (char)DC1 || control_buffer[1] == (char)DC2) && control_buffer.size() != 3){
-        qDebug() << "its a data frame";
-        emit ready_to_print_signal();
-    }else{
-        //its a control frame
-        switch (control_buffer.at(1)) {
+
+    //its a control frame
+    switch (control_buffer[1]) {
         case DC1:
             qDebug() << "DC1 received";
             break;
@@ -122,9 +142,9 @@ void IO::handle_control_buffer()
             break;
         default:
             break;
-        }
-        qDebug() << "its a control frame";
     }
+
+
 }
 
 
@@ -138,18 +158,17 @@ void IO::received_ENQ(){
                 send_ACK();
                 CURRENT_STATE = RECEIVE_FRAME;
                 backingOff = false;
+                qDebug()<<"send ack";
             }
             if(ENQ_backoff_Timer->isActive() == false){
 
                 ENQ_backoff_Timer->start(qrand() % 500);
                 backingOff = true;
+                qDebug()<<"backoff";
             }
 
             break;
         case SEND_STATE:
-            //do nothing
-            break;
-        case WAIT_RESPONSE:
             //do nothing
             break;
         case RESEND_FRAME:
@@ -165,21 +184,23 @@ void IO::received_ENQ(){
 
 
 void IO::received_EOT(){
+
     switch(CURRENT_STATE){
         case IDLE:
-            qDebug() << "DC1 received";
+            CURRENT_STATE = IDLE;
+            send_EOT();
             break;
         case REQUEST_LINE:
-            qDebug() << "DC2 received";
+            CURRENT_STATE = SEND_STATE;
+            send_ACK();
             break;
         case SEND_STATE:
-            qDebug() << "EOT received";
-            break;
-        case WAIT_RESPONSE:
-            qDebug() << "ENQ received";
+            CURRENT_STATE = IDLE;
+            retransmission_timeout->stop();
             break;
         case RESEND_FRAME:
-            qDebug() << "ACK received";
+            break;
+        case RECEIVE_FRAME:
             break;
         default:
             break;
@@ -190,19 +211,17 @@ void IO::received_EOT(){
 void IO::received_NAK(){
     switch(CURRENT_STATE){
         case IDLE:
-            qDebug() << "DC1 received";
             break;
         case REQUEST_LINE:
-            qDebug() << "DC2 received";
             break;
         case SEND_STATE:
-            qDebug() << "EOT received";
+            CURRENT_STATE = SEND_STATE;
+            retransmission_timeout->stop();
+            resend_DATA_FRAME();
             break;
-        case WAIT_RESPONSE:
-            qDebug() << "ENQ received";
+        case RECEIVE_FRAME:
             break;
         case RESEND_FRAME:
-            qDebug() << "ACK received";
             break;
         default:
             break;
@@ -213,19 +232,22 @@ void IO::received_NAK(){
 void IO::received_ACK(){
     switch(CURRENT_STATE){
         case IDLE:
-            qDebug() << "DC1 received";
             break;
         case REQUEST_LINE:
-            qDebug() << "DC2 received";
+            CURRENT_STATE = SEND_STATE;
+            retransmission_timeout->stop();
+            resend_counts = 0;
+            send_DATA_FRAME();
             break;
         case SEND_STATE:
-            qDebug() << "EOT received";
+            CURRENT_STATE = SEND_STATE;
+            retransmission_timeout->stop();
+            resend_counts = 0;
+            send_DATA_FRAME();
             break;
-        case WAIT_RESPONSE:
-            qDebug() << "ENQ received";
+        case RECEIVE_FRAME:
             break;
         case RESEND_FRAME:
-            qDebug() << "ACK received";
             break;
         default:
             break;
@@ -255,20 +277,6 @@ void IO::process_frames(QString data){
            frame.clear();
        }
     }
-
-//    for(int i = 0; i < data.length(); ++i){
-//        QChar current_char = data.at(i);
-//        if(!current_char.isNull()
-//                && (current_char.isLetterOrNumber()
-//                    || current_char.isSpace()
-//                    || current_char.isPunct())){
-//            data_buffer += current_char;
-//        }else{
-//          control_buffer+= (current_char);
-
-//        }
-//    }
-   // handle_control_buffer();
 
 }
 

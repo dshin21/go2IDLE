@@ -18,7 +18,9 @@ private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
     QTimer* ENQ_backoff_Timer;
+    QTimer* retransmission_timeout;
     bool backingOff;
+    int resend_counts;
 
 
 public:
@@ -33,6 +35,7 @@ public:
     void send_ACK();
     void send_NAK();
     void send_DATA_FRAME();
+    void resend_DATA_FRAME();
     QByteArray make_frame(const QByteArray& data);
 
     void handle_control_buffer();
@@ -51,6 +54,7 @@ public slots:
     void read_from_port();
     void process_frames(QString data);
     void send_ENQ_after_backoff();
+    void resend_frame();
 
 signals:
     void write_to_port_signal(const QByteArray &frame);

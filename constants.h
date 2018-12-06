@@ -4,16 +4,18 @@
 
 #define IDLE 1 // SENT EOT
 #define REQUEST_LINE 2 // SENT ENQ
-#define SEND_STATE 3 // SENT FRAME
-#define WAIT_RESPONSE 4 // SENT FRAME
-#define RESEND_FRAME 5 // GOT NAK
+#define SEND_STATE 3 // SENT data FRAME
+#define WAIT_RESPONSE 4 // SENT control FRAME
+#define RESEND_FRAME 5 // sent NAK
 #define RECEIVE_FRAME 6 // sent ack
+#define TRANSMISSION_TIMEOUT 1
 
 static int CURRENT_STATE = 1;
 
 const int DATA_FRAME_LENGTH = 1024;
 const int DATA_LENGTH = 1021;
 const int CONTROL_FRAME_LENGTH = 3;
+const int MAX_RESENDS = 3;
 
 const int SYN = 0x16;
 const QByteArray SYN_FRAME = QByteArray(1, SYN);
