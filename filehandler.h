@@ -15,7 +15,6 @@ class FileHandler : public QWidget
 private:
     int characterCount = 0;
     bool endOfFile = false;
-    QByteArray previousFrame;
 public:
     ifstream  *if_stream;
     char buffer[512];

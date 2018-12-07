@@ -109,7 +109,14 @@ QByteArray IO::make_frame(const QByteArray &data)
         QByteArray padding = QByteArray(DATA_LENGTH - data.size(), 0x0);
         uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
         //TODO: alternate DC1
-        QByteArray frame = SYN_FRAME + DC1_FRAME + data + padding;
+        QByteArray frame;
+        if (LAST_FRAME_ID == FRAME2) {
+            frame = SYN_FRAME + DC1_FRAME + data + padding;
+            CURRENT_FRAME_ID = FRAME1;
+        } else {
+           frame = SYN_FRAME + DC2_FRAME + data + padding;
+           CURRENT_FRAME_ID = FRAME2;
+        }
         frame.push_back(crc);
         return frame;
     }
@@ -284,13 +291,29 @@ void IO::process_frames(QString data){
     } else {
         qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
-           data_buffer = data;
-           qDebug() << "it's a data frame!";
-           qDebug() << data;
-           //check crc
-           //send_ACK();
-           send_NAK();
-           frame.clear();
+           if (LAST_FRAME_ID == FRAME1 && CURRENT_FRAME_ID == FRAME2) {
+              LAST_FRAME_ID = FRAME2;
+              data_buffer = data;
+              qDebug() << "it's a data frame 1!";
+              qDebug() << data;
+              //check crc
+              send_ACK();
+              frame.clear();
+           } else if (LAST_FRAME_ID == FRAME2 && CURRENT_FRAME_ID == FRAME1){
+             LAST_FRAME_ID = FRAME1;
+             data_buffer = data;
+             qDebug() << "it's a data frame 2!";
+             qDebug() << data;
+             //check crc
+             send_ACK();
+             frame.clear();
+           } else {
+               //do nothing
+           }
+
+
+//           send_NAK();
+
        }
     }
 
@@ -303,6 +326,3 @@ void IO::process_frames(QString data){
 // Deal with exceeding maximum frames 50
 // Idle mode send EOTs
 // connection timeout (almost done) Allan Hsu
-// test nak and resend
-
-

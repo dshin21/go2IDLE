@@ -11,11 +11,15 @@
 #define TRANSMISSION_TIMEOUT 1
 
 static int CURRENT_STATE = 1;
+static int CURRENT_FRAME_ID = 1;
+static int LAST_FRAME_ID = 2;
 
 const int DATA_FRAME_LENGTH = 1024;
 const int DATA_LENGTH = 1021;
 const int CONTROL_FRAME_LENGTH = 3;
 const int MAX_RESENDS = 3;
+const int FRAME1 = 1;
+const int FRAME2 = 2;
 
 const int SYN = 0x16;
 const QByteArray SYN_FRAME = QByteArray(1, SYN);

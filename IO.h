@@ -23,6 +23,7 @@ private:
     int resend_counts;
 
 
+
 public:
     bool is_processed;
     QByteArray master_buffer;
