@@ -11,6 +11,7 @@ QByteArray FileHandler::get_next()
     char temp;
     QByteArray data_buffer;
     characterCount = 0;
+    previousFrame.clear();
 
     while(!if_stream->eof() && characterCount < 1021){
         temp = if_stream->get();
@@ -25,13 +26,14 @@ QByteArray FileHandler::get_next()
         if(if_stream ->eof()){
             endOfFile = true;
         }
+        previousFrame = data_buffer;
         return data_buffer;
     }
 }
 
 QByteArray FileHandler::get_prev()
 {
-    return QByteArray(buffer);
+    return QByteArray(previousFrame);
 }
 
 void FileHandler::select_file(){

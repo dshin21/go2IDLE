@@ -302,3 +302,6 @@ void IO::process_frames(QString data){
 // Deal with exceeding maximum frames 50
 // Idle mode send EOTs
 // connection timeout (almost done) Allan Hsu
+// test nak and resend
+
+
