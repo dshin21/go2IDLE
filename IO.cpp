@@ -268,6 +268,7 @@ void IO::received_ACK(){
             //retransmission_timeout->stop();
             resend_counts = 0;
             dcFlip = !dcFlip;
+
             send_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
@@ -298,15 +299,28 @@ void IO::process_frames(QString data){
     } else {
         qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
-           if (dcFlipReceive == false) {//dc1
+           if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
+
+
               data_buffer = data;
               qDebug() << "it's a data frame 1!";
               qDebug() << data;
               dcFlipReceive = !dcFlipReceive;
               //check crc
+              qDebug()<<"entering control frame, sending ack";
               send_ACK();
               frame.clear();
-           } else {
+           } else if (dcFlipReceive == true && frame.at(1) == DC2) {//dc1
+
+               data_buffer = data;
+               qDebug() << "it's a data frame 1!";
+               qDebug() << data;
+               dcFlipReceive = !dcFlipReceive;
+               //check crc
+               qDebug()<<"entering control frame, sending ack";
+               send_ACK();
+               frame.clear();
+            } else {
                //do nothing
                //add timeout
            }
