@@ -23,9 +23,6 @@ private:
     int resend_counts;
     bool dcFlip = false; //0 = dc1, 1 = dc2
     bool dcFlipReceive = false;
-    int lastDc = 0;
-
-
 
 public:
     bool is_processed;
