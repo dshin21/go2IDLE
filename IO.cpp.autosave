@@ -248,11 +248,7 @@ void IO::received_NAK(){
 
 
 void IO::received_ACK(){
-    if ( SENDER_LAST_FRAME_ID == DC1) {
-        SENDER_LAST_FRAME_ID = DC1;
-    } else {
-        SENDER_LAST_FRAME_ID = DC2;
-    }
+    
    
     switch(CURRENT_STATE){
         case IDLE:
@@ -270,8 +266,18 @@ void IO::received_ACK(){
             send_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
+            if (SENDER_LAST_FRAME_ID == DC1) {
+                SENDER_LAST_FRAME_ID = DC1;
+            } else {
+                SENDER_LAST_FRAME_ID = DC2;
+            }
             break;
         case RESEND_FRAME:
+            if ( SENDER_LAST_FRAME_ID == DC1) {
+                SENDER_LAST_FRAME_ID = DC1;
+            } else {
+                SENDER_LAST_FRAME_ID = DC2;
+            }
             break;
         default:
             break;
