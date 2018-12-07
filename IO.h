@@ -21,6 +21,8 @@ private:
    //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
+    bool dcFlip = false; //0 = dc1, 1 = dc2
+    bool dcFlipReceive = false;
 
 
 
