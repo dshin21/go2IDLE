@@ -15,14 +15,16 @@ IO::IO(QObject *parent)
     connect(this, &IO::write_to_port_signal, this, &IO::write_to_port, Qt::QueuedConnection);
     //if incoming frame, process them
     connect(this, &IO::data_received_signal, this, &IO::process_frames);
-
     qsrand(0);
     ENQ_backoff_Timer = new QTimer(this);
-    //retransmission_timeout = new QTimer(this);
+    retransmission_Timer = new QTimer(this);
+    data_frame_receive_Timer = new QTimer(this);
     resend_counts = 0;
     backingOff = false;
     connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
-    //connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
+    connect(retransmission_Timer, &QTimer::timeout, this, &IO::resend_frame);
+    connect(data_frame_receive_Timer, &QTimer::timeout, this, &IO::receive_timeout);
+
 }
 
 void IO::init_port(){
@@ -74,28 +76,45 @@ void IO::resend_frame(){
 void IO::send_ACK()
 {
     CURRENT_STATE = RECEIVE_FRAME;
+    data_frame_receive_Timer->start(TRANSMISSION_TIMEOUT);
     emit write_to_port_signal(ACK_FRAME);
 }
 
 void IO::send_NAK()
 {
     CURRENT_STATE = RESEND_FRAME;
+    data_frame_receive_Timer->start(TRANSMISSION_TIMEOUT);
     emit write_to_port_signal(NAK_FRAME);
 }
 
 void IO::send_DATA_FRAME()
 {
-    //retransmission_timeout->start(TRANSMISSION_TIMEOUT);
-    emit write_to_port_signal(make_frame(file_handler->get_next()));
+    QByteArray temp;
+    temp = make_frame(file_handler->get_next());
+    if(temp.at(1) != EOT){
+        retransmission_Timer->start(TRANSMISSION_TIMEOUT);
+    }
+    emit write_to_port_signal(temp);
+
 }
 
 void IO::resend_DATA_FRAME()
 {
-    resend_counts ++;
+    if(resend_counts > 3){
+        CURRENT_STATE = IDLE;
+    } else {
+        resend_counts ++;
+        retransmission_Timer->start(TRANSMISSION_TIMEOUT);
+        emit write_to_port_signal(make_frame(file_handler->get_prev()));
+    }
     //retransmission_timeout->start(TRANSMISSION_TIMEOUT);
-    emit write_to_port_signal(make_frame(file_handler->get_prev()));
 
 }
+
+void IO::receive_timeout(){
+    CURRENT_STATE = IDLE;
+}
+
 
 
 QByteArray IO::make_frame(const QByteArray &data)
@@ -107,6 +126,9 @@ QByteArray IO::make_frame(const QByteArray &data)
          return EOT_FRAME;
 
     } else {
+        if(data_frame_receive_Timer->isActive()){
+            data_frame_receive_Timer->stop();
+        }
         QByteArray padding = QByteArray(DATA_LENGTH - data.size(), 0x0);
         uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
         //TODO: alternate DC1
@@ -219,8 +241,8 @@ void IO::received_EOT(){
         case RESEND_FRAME:
             break;
         case RECEIVE_FRAME:
-         CURRENT_STATE = IDLE;
-         qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
+            CURRENT_STATE = IDLE;
+            qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
             break;
         default:
             break;
@@ -235,10 +257,12 @@ void IO::received_NAK(){
         case REQUEST_LINE:
             break;
         case SEND_STATE:
-
             CURRENT_STATE = SEND_STATE;
-            //retransmission_timeout->stop();
-
+            if(retransmission_Timer->isActive()){
+                retransmission_Timer->stop();
+                qDebug()<<"received NAK stopping timer";
+            }
+            resend_counts = 0;
             resend_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
@@ -259,12 +283,15 @@ void IO::received_ACK(){
             break;
         case REQUEST_LINE:
             CURRENT_STATE = SEND_STATE;
-            //retransmission_timeout->stop();
             resend_counts = 0;
             send_DATA_FRAME();
             break;
         case SEND_STATE:
             CURRENT_STATE = SEND_STATE;
+            if(retransmission_Timer->isActive()){
+                retransmission_Timer->stop();
+                qDebug()<<"received ACK stopping timer";
+            }
             //retransmission_timeout->stop();
             resend_counts = 0;
             dcFlip = !dcFlip;
@@ -290,34 +317,29 @@ void IO::process_frames(QString data){
 
     if(data[0] == (char)SYN
             && (data[2] == (char)DC1 || data[2] == (char)DC2)){
- qDebug()<<"entered process frame if " <<frame.size();
+        qDebug()<<"entered process frame if " <<frame.size();
         control_buffer = data.toUtf8();
         qDebug() << "it's a control frame!";
         qDebug() << data;
-         frame.clear();
+        frame.clear();
         handle_control_buffer();
     } else {
         qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
            if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
-
-
               data_buffer = data;
-              qDebug() << "it's a data frame 1!";
+              qDebug() << "it's a data frame with DC2!";
               qDebug() << data;
               dcFlipReceive = !dcFlipReceive;
               //check crc
-              qDebug()<<"entering control frame, sending ack";
               send_ACK();
               frame.clear();
            } else if (dcFlipReceive == true && frame.at(1) == DC2) {//dc1
-
                data_buffer = data;
-               qDebug() << "it's a data frame 1!";
+               qDebug() << "it's a data frame with DC2!";
                qDebug() << data;
                dcFlipReceive = !dcFlipReceive;
                //check crc
-               qDebug()<<"entering control frame, sending ack";
                send_ACK();
                frame.clear();
             } else {
@@ -335,7 +357,6 @@ void IO::process_frames(QString data){
 
 //TODO:
 // timeouts
-// differentiate duplicate frames (Jenny)
 // check CRC
 // Deal with exceeding maximum frames 50
 // Idle mode send EOTs
