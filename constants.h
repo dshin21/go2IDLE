@@ -8,7 +8,8 @@
 #define WAIT_RESPONSE 4 // SENT control FRAME
 #define RESEND_FRAME 5 // sent NAK
 #define RECEIVE_FRAME 6 // sent ack
-#define TRANSMISSION_TIMEOUT 1
+#define TRANSMISSION_TIMEOUT 5000
+
 
 static int CURRENT_STATE = 1;
 //static int SENDER_LAST_FRAME_ID = 0x12;

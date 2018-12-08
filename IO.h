@@ -20,6 +20,8 @@ private:
     QTimer* ENQ_backoff_Timer;
     QTimer* IDLE_EOT_send_timer;
     QTimer* IDLE_EOT_received_timer;
+    QTimer* retransmission_Timer;
+    QTimer* data_frame_receive_Timer;
    //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
@@ -63,6 +65,7 @@ public slots:
     void IDLE_send_EOT();
     void IDLE_EOT_not_received();
     void terminate_program();
+    void receive_timeout();
 
 signals:
     void write_to_port_signal(const QByteArray &frame);
