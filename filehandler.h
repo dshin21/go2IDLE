@@ -12,6 +12,9 @@ using namespace std;
 class FileHandler : public QWidget
 {
     Q_OBJECT
+private:
+    int characterCount = 0;
+    bool endOfFile = false;
 public:
     ifstream  *if_stream;
     char buffer[512];

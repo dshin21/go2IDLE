@@ -8,8 +8,25 @@ FileHandler::FileHandler(QObject *parent)
 
 QByteArray FileHandler::get_next()
 {
-    if_stream->get(buffer,512,EOF);
-    return QByteArray(buffer);
+    char temp;
+    QByteArray data_buffer;
+    characterCount = 0;
+
+    while(!if_stream->eof() && characterCount < 1021){
+        temp = if_stream->get();
+        data_buffer += temp;
+        characterCount++;
+    }
+
+    if(endOfFile){
+        endOfFile = false;
+        return NULL;
+    }else{
+        if(if_stream ->eof()){
+            endOfFile = true;
+        }
+        return data_buffer;
+    }
 }
 
 QByteArray FileHandler::get_prev()
