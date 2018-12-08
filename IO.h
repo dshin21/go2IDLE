@@ -18,13 +18,15 @@ private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
     QTimer* ENQ_backoff_Timer;
-    QTimer* IDLE_EOT_timer;
+    QTimer* IDLE_EOT_send_timer;
+    QTimer* IDLE_EOT_received_timer;
    //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
     QThread idle_eot_thread;
     bool dcFlip = false; //0 = dc1, 1 = dc2
     bool dcFlipReceive = false;
+    bool EOT_received = false;
 
 public:
     bool is_processed;
@@ -58,7 +60,9 @@ public slots:
     void process_frames(QString data);
     void send_ENQ_after_backoff();
     void resend_frame();
-    void create_IDLE_send_EOT();
+    void IDLE_send_EOT();
+    void IDLE_EOT_not_received();
+    void terminate_program();
 
 signals:
     void write_to_port_signal(const QByteArray &frame);
