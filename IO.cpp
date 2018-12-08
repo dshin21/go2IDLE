@@ -116,6 +116,7 @@ void IO::resend_DATA_FRAME()
 
 QByteArray IO::make_frame(const QByteArray &data)
 {
+
     if(data.isEmpty()){
         CURRENT_STATE = IDLE;
 
@@ -126,10 +127,12 @@ QByteArray IO::make_frame(const QByteArray &data)
         uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
         //TODO: alternate DC1
         QByteArray frame;
-        if (SENDER_LAST_FRAME_ID == DC2) {
+        if (dcFlip == false) {
             frame = SYN_FRAME + DC1_FRAME + data + padding;
+            qDebug()<<"sent dc1";
         } else {
            frame = SYN_FRAME + DC2_FRAME + data + padding;
+            qDebug()<<"sent dc2";
         }
         frame.push_back(crc);
         return frame;
@@ -251,6 +254,7 @@ void IO::received_NAK(){
 
             CURRENT_STATE = SEND_STATE;
             //retransmission_timeout->stop();
+
             resend_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
@@ -279,21 +283,15 @@ void IO::received_ACK(){
             CURRENT_STATE = SEND_STATE;
             //retransmission_timeout->stop();
             resend_counts = 0;
+            dcFlip = !dcFlip;
+
             send_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
-            if (SENDER_LAST_FRAME_ID == DC1) {
-                SENDER_LAST_FRAME_ID = DC1;
-            } else {
-                SENDER_LAST_FRAME_ID = DC2;
-            }
+
             break;
         case RESEND_FRAME:
-            if ( SENDER_LAST_FRAME_ID == DC1) {
-                SENDER_LAST_FRAME_ID = DC1;
-            } else {
-                SENDER_LAST_FRAME_ID = DC2;
-            }
+
             break;
         default:
             break;
@@ -317,23 +315,28 @@ void IO::process_frames(QString data){
     } else {
 //        qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
-           if (RECEIVER_LAST_FRAME_ID == DC1 && frame.at(1) == DC2) {
+           if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
+
+
               data_buffer = data;
               qDebug() << "it's a data frame 1!";
               qDebug() << data;
-              RECEIVER_LAST_FRAME_ID = DC2;
+              dcFlipReceive = !dcFlipReceive;
               //check crc
+              qDebug()<<"entering control frame, sending ack";
               send_ACK();
               frame.clear();
-           } else if (RECEIVER_LAST_FRAME_ID == DC2 && frame.at(1) == DC1){
-             data_buffer = data;
-             qDebug() << "it's a data frame 2!";
-             qDebug() << data;
-             RECEIVER_LAST_FRAME_ID = DC1;
-             //check crc
-             send_ACK();
-             frame.clear();
-           } else {
+           } else if (dcFlipReceive == true && frame.at(1) == DC2) {//dc1
+
+               data_buffer = data;
+               qDebug() << "it's a data frame 1!";
+               qDebug() << data;
+               dcFlipReceive = !dcFlipReceive;
+               //check crc
+               qDebug()<<"entering control frame, sending ack";
+               send_ACK();
+               frame.clear();
+            } else {
                //do nothing
                //add timeout
            }

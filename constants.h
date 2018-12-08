@@ -11,8 +11,8 @@
 #define TRANSMISSION_TIMEOUT 1
 
 static int CURRENT_STATE = 1;
-static int SENDER_LAST_FRAME_ID = 0x12;
-static int RECEIVER_LAST_FRAME_ID = 0x12;
+//static int SENDER_LAST_FRAME_ID = 0x12;
+//static int RECEIVER_LAST_FRAME_ID = 0x12;
 
 const int DATA_FRAME_LENGTH = 1024;
 const int DATA_LENGTH = 1021;

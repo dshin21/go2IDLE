@@ -23,7 +23,8 @@ private:
     bool backingOff;
     int resend_counts;
     QThread idle_eot_thread;
-
+    bool dcFlip = false; //0 = dc1, 1 = dc2
+    bool dcFlipReceive = false;
 
 public:
     bool is_processed;
