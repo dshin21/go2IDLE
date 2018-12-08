@@ -141,9 +141,7 @@ QByteArray IO::make_frame(const QByteArray &data)
          return EOT_FRAME;
 
     } else {
-        if(data_frame_receive_Timer->isActive()){
-            data_frame_receive_Timer->stop();
-        }
+
         QByteArray padding = QByteArray(DATA_LENGTH - data.size(), 0x0);
         uint32_t crc = CRC::Calculate(padding.data(), DATA_LENGTH, CRC::CRC_32());
         //TODO: alternate DC1
@@ -339,8 +337,13 @@ void IO::process_frames(QString data){
         frame.clear();
         handle_control_buffer();
     } else {
+
 //        qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
+           if(data_frame_receive_Timer->isActive()){
+               data_frame_receive_Timer->stop();
+           }
+
            if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
               data_buffer = data;
               qDebug() << "it's a data frame with DC2!";
@@ -371,7 +374,6 @@ void IO::process_frames(QString data){
 }
 
 //TODO:
-// timeouts
 // check CRC
 // Deal with exceeding maximum frames 50
 // Idle mode send EOTs
