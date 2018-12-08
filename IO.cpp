@@ -7,7 +7,8 @@ IO::IO(QObject *parent)
       serial_port(new QSerialPort(this)),
       master_buffer(QByteArray()),
       file_handler(new FileHandler(this)),
-      is_processed(false)
+      is_processed(false),
+      IDLE_EOT_timer(new QTimer(this))
 {
 
     init_port();
@@ -22,9 +23,12 @@ IO::IO(QObject *parent)
     resend_counts = 0;
     backingOff = false;
     connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
+    IDLE_EOT_timer->start(500);
+    connect(IDLE_EOT_timer, &QTimer::timeout, this, &IO::create_IDLE_send_EOT);
     connect(retransmission_Timer, &QTimer::timeout, this, &IO::resend_frame);
     connect(data_frame_receive_Timer, &QTimer::timeout, this, &IO::receive_timeout);
 
+    //connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
 }
 
 void IO::init_port(){
@@ -72,6 +76,17 @@ void IO::resend_frame(){
         resend_counts = 0;
     }
 }
+
+void IO::create_IDLE_send_EOT()
+{
+    emit write_to_port_signal(EOT_FRAME);
+    if(CURRENT_STATE == IDLE){
+        qDebug() << "OOOOOOOOOOOOOOOOOOO: sent EOT";
+        IDLE_EOT_timer->start(500);
+    }
+    return;
+}
+
 
 void IO::send_ACK()
 {
@@ -324,7 +339,7 @@ void IO::process_frames(QString data){
         frame.clear();
         handle_control_buffer();
     } else {
-        qDebug()<<"entered process frame else " <<frame.size();
+//        qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
            if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
               data_buffer = data;
