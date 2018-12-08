@@ -18,10 +18,11 @@ private:
     QSerialPort* serial_port;
     FileHandler* file_handler;
     QTimer* ENQ_backoff_Timer;
+    QTimer* IDLE_EOT_timer;
    //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
-
+    QThread idle_eot_thread;
 
 
 public:
@@ -56,6 +57,7 @@ public slots:
     void process_frames(QString data);
     void send_ENQ_after_backoff();
     void resend_frame();
+    void create_IDLE_send_EOT();
 
 signals:
     void write_to_port_signal(const QByteArray &frame);

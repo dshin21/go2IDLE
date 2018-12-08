@@ -22,6 +22,8 @@ private:
     Ui::go2IDLE *ui;
     IO* io_thread;
 
+signals:
+//    void IDLE_send_EOT_signal();
 
 public slots:
     void display_data();
