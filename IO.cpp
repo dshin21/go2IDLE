@@ -8,7 +8,8 @@ IO::IO(QObject *parent)
       master_buffer(QByteArray()),
       file_handler(new FileHandler(this)),
       is_processed(false),
-      IDLE_EOT_timer(new QTimer(this))
+      IDLE_EOT_send_timer(new QTimer(this)),
+      IDLE_EOT_received_timer(new QTimer(this))
 {
 
     init_port();
@@ -23,10 +24,14 @@ IO::IO(QObject *parent)
     resend_counts = 0;
     backingOff = false;
     connect(ENQ_backoff_Timer, &QTimer::timeout, this, &IO::send_ENQ_after_backoff);
-    IDLE_EOT_timer->start(500);
-    connect(IDLE_EOT_timer, &QTimer::timeout, this, &IO::create_IDLE_send_EOT);
+
+    IDLE_EOT_send_timer->start(500);
+    connect(IDLE_EOT_send_timer, &QTimer::timeout, this, &IO::IDLE_send_EOT);
+    IDLE_EOT_received_timer->start(30000);
+    connect(IDLE_EOT_received_timer, &QTimer::timeout, this, &IO::IDLE_EOT_not_received);
     connect(retransmission_Timer, &QTimer::timeout, this, &IO::resend_frame);
     connect(data_frame_receive_Timer, &QTimer::timeout, this, &IO::receive_timeout);
+
 
     //connect(retransmission_timeout, &QTimer::timeout, this, &IO::resend_frame);
 }
@@ -77,14 +82,40 @@ void IO::resend_frame(){
     }
 }
 
-void IO::create_IDLE_send_EOT()
+void IO::IDLE_send_EOT()
 {
     emit write_to_port_signal(EOT_FRAME);
     if(CURRENT_STATE == IDLE){
         qDebug() << "OOOOOOOOOOOOOOOOOOO: sent EOT";
-        IDLE_EOT_timer->start(500);
+        IDLE_EOT_send_timer->start(500);
     }
     return;
+}
+
+void IO::IDLE_EOT_not_received()
+{
+    if(CURRENT_STATE == IDLE && !EOT_received){
+        qDebug() << "OOOOOOOOOOOOOOOOOOO: EOT not received after 30s. DISCONNECT";
+        terminate_program();
+    }else{
+//        IDLE_EOT_received_timer->start(30000);
+        qDebug() << "OOOOOOOOOOOOOOOOOOO: hi";
+
+        IDLE_EOT_received_timer->start(30000);
+        EOT_received = false;
+    }
+    return;
+}
+
+void IO::terminate_program()
+{
+    disconnect(IDLE_EOT_send_timer, &QTimer::timeout, this, &IO::IDLE_send_EOT);
+    disconnect(IDLE_EOT_received_timer, &QTimer::timeout, this, &IO::IDLE_EOT_not_received);
+
+    serial_port->flush();
+    serial_port->clear();
+    serial_port->close();
+    QThread::currentThread()->disconnect();
 }
 
 
@@ -138,7 +169,7 @@ QByteArray IO::make_frame(const QByteArray &data)
     if(data.isEmpty()){
         CURRENT_STATE = IDLE;
 
-         return EOT_FRAME;
+        return EOT_FRAME;
 
     } else {
 
@@ -150,7 +181,7 @@ QByteArray IO::make_frame(const QByteArray &data)
             frame = SYN_FRAME + DC1_FRAME + data + padding;
             qDebug()<<"sent dc1";
         } else {
-           frame = SYN_FRAME + DC2_FRAME + data + padding;
+            frame = SYN_FRAME + DC2_FRAME + data + padding;
             qDebug()<<"sent dc2";
         }
         frame.push_back(crc);
@@ -176,63 +207,61 @@ void IO::handle_control_buffer()
 
     //its a control frame
     switch (control_buffer[1]) {
-        case DC1:
-            qDebug() << "DC1 received";
-            break;
-        case DC2:
-            qDebug() << "DC2 received";
-            break;
-        case EOT:
-            received_EOT();
-            break;
-        case ENQ:
-            received_ENQ();
-            break;
-        case ACK:
-            received_ACK();
-            break;
-        case NAK:
-            received_NAK();
-            break;
-        default:
-            break;
+    case DC1:
+        qDebug() << "DC1 received";
+        break;
+    case DC2:
+        qDebug() << "DC2 received";
+        break;
+    case EOT:
+        received_EOT();
+        break;
+    case ENQ:
+        received_ENQ();
+        break;
+    case ACK:
+        received_ACK();
+        break;
+    case NAK:
+        received_NAK();
+        break;
+    default:
+        break;
     }
-
-
 }
 
 
 void IO::received_ENQ(){
     switch(CURRENT_STATE){
-        case IDLE:
+    case IDLE:
+        send_ACK();
+        break;
+    case REQUEST_LINE:
+        if(ENQ_backoff_Timer->isActive() && backingOff == true){
             send_ACK();
-            break;
-        case REQUEST_LINE:
-            if(ENQ_backoff_Timer->isActive() && backingOff == true){
-                send_ACK();
-                CURRENT_STATE = RECEIVE_FRAME;
-                backingOff = false;
-                qDebug()<<"send ack";
-            }
-            if(ENQ_backoff_Timer->isActive() == false){
+            CURRENT_STATE = RECEIVE_FRAME;
+            backingOff = false;
+            qDebug()<<"send ack";
+        }
+        if(ENQ_backoff_Timer->isActive() == false){
 
-                ENQ_backoff_Timer->start(qrand() % 500);
-                backingOff = true;
-                qDebug()<<"backoff";
-            }
+            ENQ_backoff_Timer->start(qrand() % 500);
+            backingOff = true;
+            qDebug()<<"backoff";
+        }
 
-            break;
-        case SEND_STATE:
-            //do nothing
-            break;
-        case RESEND_FRAME:
-            //do nothing
-            break;
-        case RECEIVE_FRAME:
-         //do nothing
-            break;
-        default:
-            break;
+        break;
+    case SEND_STATE:
+        //do nothing
+        break;
+    case RESEND_FRAME:
+        //do nothing
+        break;
+    case RECEIVE_FRAME:
+        //do nothing
+        break;
+    default:
+        break;
     }
 }
 
@@ -240,25 +269,26 @@ void IO::received_ENQ(){
 void IO::received_EOT(){
 
     switch(CURRENT_STATE){
-        case IDLE:
-            send_EOT();
-            break;
-        case REQUEST_LINE:
-            CURRENT_STATE = SEND_STATE;
-            send_ACK();
-            break;
-        case SEND_STATE:
-            CURRENT_STATE = IDLE;
-            //retransmission_timeout->stop();
-            break;
-        case RESEND_FRAME:
-            break;
-        case RECEIVE_FRAME:
-            CURRENT_STATE = IDLE;
-            qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
-            break;
-        default:
-            break;
+    case IDLE:
+        EOT_received = true;
+        IDLE_send_EOT();
+        break;
+    case REQUEST_LINE:
+        CURRENT_STATE = SEND_STATE;
+        send_ACK();
+        break;
+    case SEND_STATE:
+        CURRENT_STATE = IDLE;
+        //retransmission_timeout->stop();
+        break;
+    case RESEND_FRAME:
+        break;
+    case RECEIVE_FRAME:
+        CURRENT_STATE = IDLE;
+        qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
+        break;
+    default:
+        break;
     }
 }
 
@@ -343,7 +373,6 @@ void IO::process_frames(QString data){
            if(data_frame_receive_Timer->isActive()){
                data_frame_receive_Timer->stop();
            }
-
            if (dcFlipReceive == false&& frame.at(1) == DC1) {//dc1
               data_buffer = data;
               qDebug() << "it's a data frame with DC2!";
@@ -361,8 +390,7 @@ void IO::process_frames(QString data){
                send_ACK();
                frame.clear();
             }
-
-       }
+        }
     }
 
 }
