@@ -360,13 +360,7 @@ void IO::process_frames(QString data){
                //check crc
                send_ACK();
                frame.clear();
-            } else {
-               //do nothing
-               //add timeout
-           }
-
-
-//           send_NAK();
+            }
 
        }
     }
