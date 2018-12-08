@@ -370,5 +370,4 @@ void IO::process_frames(QString data){
 //TODO:
 // check CRC
 // Deal with exceeding maximum frames 50
-// Idle mode send EOTs
-// connection timeout (almost done) Allan Hsu
+
