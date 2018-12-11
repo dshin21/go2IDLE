@@ -29,6 +29,7 @@ private:
     bool dcFlip = false; //0 = dc1, 1 = dc2
     bool dcFlipReceive = false;
     bool EOT_received = false;
+    bool synDetected = false;
 
 public:
     bool is_processed;
