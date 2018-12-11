@@ -19,6 +19,7 @@ public:
     ifstream  *if_stream;
     char buffer[512];
     string fileName;
+    QByteArray data_buffer;
 
     FileHandler(QObject *parent = nullptr);
     //    ~FileHandler();

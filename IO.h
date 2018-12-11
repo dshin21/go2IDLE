@@ -22,7 +22,6 @@ private:
     QTimer* IDLE_EOT_received_timer;
     QTimer* retransmission_Timer;
     QTimer* data_frame_receive_Timer;
-   //QTimer* retransmission_timeout;
     bool backingOff;
     int resend_counts;
     QThread idle_eot_thread;

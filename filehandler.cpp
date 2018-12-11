@@ -9,7 +9,7 @@ FileHandler::FileHandler(QObject *parent)
 QByteArray FileHandler::get_next()
 {
     char temp;
-    QByteArray data_buffer;
+    data_buffer.clear();
     characterCount = 0;
 
     while(!if_stream->eof() && characterCount < 1021){
@@ -31,7 +31,7 @@ QByteArray FileHandler::get_next()
 
 QByteArray FileHandler::get_prev()
 {
-    return QByteArray(buffer);
+    return QByteArray(data_buffer);
 }
 
 void FileHandler::select_file(){
