@@ -9,6 +9,7 @@
 #define RESEND_FRAME 5 // sent NAK
 #define RECEIVE_FRAME 6 // sent ack
 #define TRANSMISSION_TIMEOUT 5000
+#define EOT_TIMEOUT 500
 
 
 static int CURRENT_STATE = 1;

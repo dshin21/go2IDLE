@@ -61,6 +61,7 @@ void IO::send_EOT()
 void IO::send_ENQ()
 {
     CURRENT_STATE = REQUEST_LINE;
+    IDLE_EOT_send_timer->stop();
     emit write_to_port_signal(ENQ_FRAME);
 
 }
@@ -84,17 +85,18 @@ void IO::resend_frame(){
 
 void IO::IDLE_send_EOT()
 {
-    emit write_to_port_signal(EOT_FRAME);
+
     if(CURRENT_STATE == IDLE){
         qDebug() << "OOOOOOOOOOOOOOOOOOO: sent EOT";
-        IDLE_EOT_send_timer->start(500);
+        IDLE_EOT_send_timer->start(EOT_TIMEOUT);
     }
+    emit write_to_port_signal(EOT_FRAME);
     return;
 }
 
 void IO::IDLE_EOT_not_received()
 {
-    if(CURRENT_STATE == IDLE && !EOT_received){
+    if(CURRENT_STATE == IDLE && EOT_received == false){
         qDebug() << "OOOOOOOOOOOOOOOOOOO: EOT not received after 30s. DISCONNECT";
         terminate_program();
     }else{
@@ -168,7 +170,7 @@ QByteArray IO::make_frame(const QByteArray &data)
 
     if(data.isEmpty()){
         CURRENT_STATE = IDLE;
-
+        IDLE_EOT_send_timer->start(EOT_TIMEOUT);
         return EOT_FRAME;
 
     } else {
@@ -198,20 +200,20 @@ void IO::read_from_port()
     master_buffer.clear();
     master_buffer += serial_port->readAll();
     if(synDetected == false){
-        while(synDetected == false || counter < master_buffer.size()){
+        while(synDetected == false && counter < master_buffer.size()){
             if(master_buffer[counter] == (char)SYN){
                 synDetected = true;
                 frame = master_buffer.mid(counter, master_buffer.size() - counter);
-                emit data_received_signal(frame);
             } else {
                 counter++;
             }
         }
+
     } else {
         frame += master_buffer;
-        emit data_received_signal(frame);
-    }
 
+    }
+    emit data_received_signal(frame);
 
 
 
@@ -249,6 +251,7 @@ void IO::handle_control_buffer()
 void IO::received_ENQ(){
     switch(CURRENT_STATE){
     case IDLE:
+        IDLE_EOT_send_timer->stop();
         send_ACK();
         break;
     case REQUEST_LINE:
@@ -286,7 +289,7 @@ void IO::received_EOT(){
     switch(CURRENT_STATE){
     case IDLE:
         EOT_received = true;
-        IDLE_send_EOT();
+        //IDLE_send_EOT();
         break;
     case REQUEST_LINE:
         CURRENT_STATE = SEND_STATE;
@@ -300,6 +303,7 @@ void IO::received_EOT(){
         break;
     case RECEIVE_FRAME:
         CURRENT_STATE = IDLE;
+        IDLE_EOT_send_timer->start(EOT_TIMEOUT);
         qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
         break;
     default:
@@ -380,7 +384,8 @@ void IO::process_frames(QString data){
         control_buffer = data.toUtf8();
         qDebug() << "it's a control frame!";
         qDebug() << data;
-        frame.clear();
+        frame = frame.right(frame.size() - 3);
+        //frame.clear();
         handle_control_buffer();
     } else {
 
