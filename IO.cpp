@@ -127,7 +127,9 @@ void IO::terminate_program()
 
 void IO::send_ACK()
 {
-    NUM_ACK++;
+    ++NUM_ACK;
+    emit ack_sent_signal_statistic();
+
     CURRENT_STATE = RECEIVE_FRAME;
     data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(ACK_FRAME);
@@ -136,6 +138,7 @@ void IO::send_ACK()
 void IO::send_NAK()
 {
     NUM_NAK++;
+    emit nak_sent_signal_statistic();
     CURRENT_STATE = RESEND_FRAME;
     data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(NAK_FRAME);
@@ -143,13 +146,14 @@ void IO::send_NAK()
 
 void IO::send_DATA_FRAME()
 {
+
     if(sendFrameCount < 10){
         QByteArray temp;
         temp = make_frame(file_handler->get_next());
         if(temp.at(1) != EOT){
             retransmission_Timer->start(TRANSMISSION_TIMEOUT);
         }
-        NUM_FRAME_SENT++;
+
         emit write_to_port_signal(temp);
     } else {
         CURRENT_STATE = IDLE;
@@ -367,7 +371,6 @@ qDebug()<<"CURRENT STATE "<<CURRENT_STATE;
         case REQUEST_LINE:
             CURRENT_STATE = SEND_STATE;
             resend_counts = 0;
-            qDebug()<<"WTF IS GOING ON--------------------------------------------------";
             send_DATA_FRAME();
             break;
         case SEND_STATE:
@@ -378,6 +381,7 @@ qDebug()<<"CURRENT STATE "<<CURRENT_STATE;
             }
             dcFlip = !dcFlip;
             sendFrameCount++;
+            emit frame_sent_signal_statistic();
             send_DATA_FRAME();
 
             break;
@@ -398,6 +402,7 @@ void IO::process_frames(QString data){
     data_buffer = "";
     control_buffer.clear();
 
+
     if(data[0] == (char)SYN
             && (data[2] == (char)DC1 || data[2] == (char)DC2)){
         qDebug()<<"entered process frame if " <<frame.size();
@@ -415,7 +420,8 @@ void IO::process_frames(QString data){
         }
 
     } else {
-
+        data_buffer = data.mid(2);
+        emit(ready_to_print_signal());
       // qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
            if(data_frame_receive_Timer->isActive()){

@@ -21,12 +21,20 @@ public:
 private:
     Ui::go2IDLE *ui;
     IO* io_thread;
+    int ackCount = 0;
+    int nakCount = 0;
+    int frameCount = 0;
+    int beRateCount = 0;
 
 signals:
 //    void IDLE_send_EOT_signal();
 
 public slots:
     void display_data();
+    void update_ack();
+    void update_nak();
+    void update_frame();
+    void update_beRate();
 };
 
 #endif // GO2IDLE_H

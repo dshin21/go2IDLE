@@ -72,6 +72,10 @@ signals:
     void write_to_port_signal(const QByteArray &frame);
     void data_received_signal(QString data);
     void ready_to_print_signal();
+    void ack_sent_signal_statistic();
+    void nak_sent_signal_statistic();
+    void frame_sent_signal_statistic();
+    void be_rate_signal_statistic();
 };
 
 #endif // IO_H
