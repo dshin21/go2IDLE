@@ -447,8 +447,11 @@ void IO::send_DATA_FRAME()
 ----------------------------------------------------------------------------------------------------------------------*/
 void IO::resend_DATA_FRAME()
 {
-    if(resend_counts > 3){
+    if(resend_counts >= MAX_RESENDS){
         CURRENT_STATE = IDLE;
+        IDLE_EOT_send_timer->start(EOT_TIMEOUT);
+        IDLE_EOT_received_timer->start(RECEIVE_TIMEOUT);
+
     } else {
         resend_counts ++;
         qDebug()<<"resend count"<<resend_counts;
@@ -763,7 +766,6 @@ void IO::received_NAK(){
                 retransmission_Timer->stop();
                 qDebug()<<"received NAK stopping timer";
             }
-            resend_counts = 0;
             resend_DATA_FRAME();
             break;
         case RECEIVE_FRAME:
@@ -890,6 +892,7 @@ void IO::process_frames(QString data){
                QByteArray temp3;
                temp3 += crcTemp;
                temp2 += frame[1023];
+               //send_ACK();
                if(temp2.toHex() == temp3.toHex()){
                    int paddingCounter = 1;
                    while(frame[paddingCounter]!= (char)0x14 && paddingCounter < frame.size()){
@@ -904,9 +907,9 @@ void IO::process_frames(QString data){
 
                    qDebug()<<"Sent ACK---------------------";
                    send_ACK();
-               } else {
-                   send_NAK();
-               }
+                    } else {
+                        send_NAK();
+                    }
 
               frame.clear();
            } else if (dcFlipReceive == true && frame.at(1) == DC2) {//dc1
@@ -920,7 +923,8 @@ void IO::process_frames(QString data){
                 QByteArray temp3;
                 temp3 += crcTemp;
                 temp2 += frame[1023];
-                if(temp2.toHex() == temp3.toHex()){
+                //send_ACK();
+                    if(temp2.toHex() == temp3.toHex()){
                     int paddingCounter = 1;
                     while(frame[paddingCounter]!= (char)0x14 && paddingCounter < frame.size()){
                         paddingCounter++;
@@ -932,10 +936,10 @@ void IO::process_frames(QString data){
                     emit(ready_to_print_signal());
                     paddingCounter = 1;
                     send_ACK();
-                } else {
+                    } else {
 
-                    send_NAK();
-                }
+                        send_NAK();
+                    }
                frame.clear();
            } else {
                 qDebug()<<"sending NAK------------------------------------------";
