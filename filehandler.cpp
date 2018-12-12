@@ -43,3 +43,11 @@ void FileHandler::select_file(){
                 ).toStdString();
    if_stream->open(fileName, fstream::in | fstream::binary);
 }
+
+void FileHandler::save_file(QByteArray data){
+    QFile file("some_name.txt");
+    file.open(QIODevice::WriteOnly);
+    file.write(data);
+    file.close();
+}
+

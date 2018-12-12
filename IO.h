@@ -9,6 +9,7 @@
 #include "CRC.h"
 #include "constants.h"
 
+
 #include "filehandler.h"
 
 class IO : public QThread
@@ -37,6 +38,7 @@ public:
     QByteArray frame;
     QString data_buffer;
     QByteArray control_buffer;
+    QByteArray fileData;
     IO(QObject *parent);
     void send_EOT();
     void send_ENQ();

@@ -194,6 +194,7 @@ QByteArray IO::make_frame(const QByteArray &data)
         CURRENT_STATE = IDLE;
         IDLE_EOT_send_timer->start(EOT_TIMEOUT);
         IDLE_EOT_received_timer->start(30000);
+
         return EOT_FRAME;
 
     } else {
@@ -329,6 +330,7 @@ void IO::received_EOT(){
         CURRENT_STATE = IDLE;
         IDLE_EOT_send_timer->start(EOT_TIMEOUT);
         IDLE_EOT_received_timer->start(30000);
+        file_handler->save_file(fileData);
         qDebug() <<"return to idle from receive xxxxxxxxxxxxxxxxxxxxxx";
         break;
     default:
@@ -420,8 +422,7 @@ void IO::process_frames(QString data){
         }
 
     } else {
-        data_buffer = data.mid(2);
-        emit(ready_to_print_signal());
+
       // qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
            if(data_frame_receive_Timer->isActive()){
@@ -441,6 +442,18 @@ void IO::process_frames(QString data){
                temp3 += crcTemp;
                temp2 += frame[1023];
                if(temp2.toHex() == temp3.toHex()){
+                   int paddingCounter = 1;
+                   while(frame[paddingCounter]!= (char)0x14 && paddingCounter < frame.size()){
+                       paddingCounter++;
+                   }
+                   fileData += frame.mid(2,paddingCounter-3);
+                   data_buffer = data.mid(2,paddingCounter-3);
+                   emit(ready_to_print_signal());
+                   paddingCounter = 1;
+
+
+
+
                    send_ACK();
                } else {
                    send_NAK();
@@ -459,6 +472,16 @@ void IO::process_frames(QString data){
                 temp3 += crcTemp;
                 temp2 += frame[1023];
                 if(temp2.toHex() == temp3.toHex()){
+                    int paddingCounter = 1;
+                    while(frame[paddingCounter]!= (char)0x14 && paddingCounter < frame.size()){
+                        paddingCounter++;
+                    }
+                    fileData += frame.mid(2,paddingCounter-3);
+
+                    data_buffer = data.mid(2,paddingCounter-3);
+
+                    emit(ready_to_print_signal());
+                    paddingCounter = 1;
                     send_ACK();
                 } else {
                     send_NAK();
@@ -471,7 +494,6 @@ void IO::process_frames(QString data){
 }
 
 //TODO:
-// Deal with exceeding maximum frames 50
 //clean up
 //comment
 //user manual

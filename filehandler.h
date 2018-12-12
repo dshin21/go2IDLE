@@ -6,6 +6,7 @@
 #include<QWidget>
 #include<fstream>
 #include<string>
+#include <QIODevice>
 
 using namespace std;
 
@@ -25,6 +26,7 @@ public:
     //    ~FileHandler();
     QByteArray get_next();
     QByteArray get_prev();
+    void save_file(QByteArray data);
 public slots:
     void select_file();
 
