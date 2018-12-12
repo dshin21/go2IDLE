@@ -13,6 +13,8 @@ go2IDLE::go2IDLE(QWidget *parent) :
     connect(ui->start_button, &QPushButton::pressed, io_thread, &IO::send_ENQ);
     //if data frame is received, print
     connect(io_thread, &IO::ready_to_print_signal, this, &go2IDLE::display_data);
+
+    //ui->label_acks->setText("Acks 0 " + NUM_ACK);
 }
 
 go2IDLE::~go2IDLE()
@@ -23,6 +25,7 @@ go2IDLE::~go2IDLE()
 void go2IDLE::display_data(){
     QPlainTextEdit *text_edit = ui->console;
     text_edit->insertPlainText(io_thread->data_buffer);
+
 }
 
 

@@ -58,8 +58,12 @@ void IO::send_EOT()
 void IO::send_ENQ()
 {
     CURRENT_STATE = REQUEST_LINE;
-    IDLE_EOT_send_timer->stop();
-    IDLE_EOT_received_timer->stop();
+    if(IDLE_EOT_send_timer->isActive()){
+       IDLE_EOT_send_timer->stop();
+    }
+    if(IDLE_EOT_received_timer->isActive()){
+       IDLE_EOT_received_timer->stop();
+    }
     emit write_to_port_signal(ENQ_FRAME);
 
 }
@@ -123,6 +127,7 @@ void IO::terminate_program()
 
 void IO::send_ACK()
 {
+    NUM_ACK++;
     CURRENT_STATE = RECEIVE_FRAME;
     data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(ACK_FRAME);
@@ -130,6 +135,7 @@ void IO::send_ACK()
 
 void IO::send_NAK()
 {
+    NUM_NAK++;
     CURRENT_STATE = RESEND_FRAME;
     data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(NAK_FRAME);
@@ -143,6 +149,7 @@ void IO::send_DATA_FRAME()
         if(temp.at(1) != EOT){
             retransmission_Timer->start(TRANSMISSION_TIMEOUT);
         }
+        NUM_FRAME_SENT++;
         emit write_to_port_signal(temp);
     } else {
         CURRENT_STATE = IDLE;
@@ -163,6 +170,7 @@ void IO::resend_DATA_FRAME()
         resend_counts ++;
         qDebug()<<"resend count"<<resend_counts;
         retransmission_Timer->start(TRANSMISSION_TIMEOUT);
+        NUM_FRAME_SENT++;
         emit write_to_port_signal(make_frame(file_handler->get_prev()));
     }
 
@@ -305,7 +313,7 @@ void IO::received_EOT(){
         break;
     case REQUEST_LINE:
         CURRENT_STATE = SEND_STATE;
-        send_ACK();
+       // send_ACK();
         break;
     case SEND_STATE:
         CURRENT_STATE = IDLE;
@@ -352,13 +360,14 @@ void IO::received_NAK(){
 
 void IO::received_ACK(){
 
-
+qDebug()<<"CURRENT STATE "<<CURRENT_STATE;
     switch(CURRENT_STATE){
         case IDLE:
             break;
         case REQUEST_LINE:
             CURRENT_STATE = SEND_STATE;
             resend_counts = 0;
+            qDebug()<<"WTF IS GOING ON--------------------------------------------------";
             send_DATA_FRAME();
             break;
         case SEND_STATE:
@@ -396,9 +405,15 @@ void IO::process_frames(QString data){
         control_buffer = frame.left(3);//data.toUtf8();
         qDebug() << "it's a control frame!";
         qDebug() << control_buffer;
-        frame = frame.right(frame.size() - 3);
-        //frame.clear();
         handle_control_buffer();
+        frame = frame.right(frame.size() - 3);
+
+        if(!frame.isEmpty()){
+            control_buffer = frame.left(3);
+            handle_control_buffer();
+            frame.clear();
+        }
+
     } else {
 
       // qDebug()<<"entered process frame else " <<frame.size();
