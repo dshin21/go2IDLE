@@ -151,6 +151,7 @@ void IO::write_to_port(const QByteArray &data)
 ----------------------------------------------------------------------------------------------------------------------*/
 void IO::send_EOT()
 {
+
     emit write_to_port_signal(EOT_FRAME);
 }
 
@@ -172,6 +173,7 @@ void IO::send_EOT()
 ----------------------------------------------------------------------------------------------------------------------*/
 void IO::send_ENQ()
 {
+    qDebug()<<"sending ENQ ----------------------------------";
     CURRENT_STATE = REQUEST_LINE;
     if(IDLE_EOT_send_timer->isActive()){
        IDLE_EOT_send_timer->stop();
@@ -256,7 +258,7 @@ void IO::IDLE_send_EOT()
 {
 
     if(CURRENT_STATE == IDLE){
-        //qDebug() << "OOOOOOOOOOOOOOOOOOO: sent EOT";
+        qDebug() << "OOOOOOOOOOOOOOOOOOO: sent EOT";
         IDLE_EOT_send_timer->start(EOT_TIMEOUT);
     }
     emit write_to_port_signal(EOT_FRAME);
@@ -561,15 +563,19 @@ void IO::read_from_port()
                 synDetected = true;
                 frame += master_buffer.mid(counter, master_buffer.size() - counter);
                 qDebug()<<"entered control frame";
+                qDebug()<<frame;
+
             } else {
                 counter++;
             }
         }
 
+
     } else {
         frame += master_buffer;
     }
 
+qDebug()<<"out of while loop"<<frame.size();
     emit data_received_signal(frame);
 
 }
@@ -896,7 +902,7 @@ void IO::process_frames(QString data){
 
 
 
-
+                   qDebug()<<"Sent ACK---------------------";
                    send_ACK();
                } else {
                    send_NAK();
@@ -927,10 +933,15 @@ void IO::process_frames(QString data){
                     paddingCounter = 1;
                     send_ACK();
                 } else {
+
                     send_NAK();
                 }
                frame.clear();
-            }
+           } else {
+                qDebug()<<"sending NAK------------------------------------------";
+               frame.clear();
+               send_NAK();
+           }
         }
     }
 
