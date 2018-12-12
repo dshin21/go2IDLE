@@ -10,7 +10,8 @@
 #define RECEIVE_FRAME 6 // sent ack
 #define TRANSMISSION_TIMEOUT 5000
 #define EOT_TIMEOUT 500
-
+#define RECEIVE_TIMEOUT 10000
+#define SENDING_MAX_FRAME 10
 
 static int CURRENT_STATE = 1;
 //static int SENDER_LAST_FRAME_ID = 0x12;

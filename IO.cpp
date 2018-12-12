@@ -81,6 +81,7 @@ void IO::resend_frame(){
         resend_counts = 0;
         retransmission_Timer->stop();
         IDLE_EOT_send_timer->start(EOT_TIMEOUT);
+         IDLE_EOT_received_timer->start(30000);
     }
 }
 
@@ -123,25 +124,34 @@ void IO::terminate_program()
 void IO::send_ACK()
 {
     CURRENT_STATE = RECEIVE_FRAME;
-   // data_frame_receive_Timer->start(TRANSMISSION_TIMEOUT);
+    data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(ACK_FRAME);
 }
 
 void IO::send_NAK()
 {
     CURRENT_STATE = RESEND_FRAME;
-   // data_frame_receive_Timer->start(TRANSMISSION_TIMEOUT);
+    data_frame_receive_Timer->start(RECEIVE_TIMEOUT);
     emit write_to_port_signal(NAK_FRAME);
 }
 
 void IO::send_DATA_FRAME()
 {
-    QByteArray temp;
-    temp = make_frame(file_handler->get_next());
-    if(temp.at(1) != EOT){
-        retransmission_Timer->start(TRANSMISSION_TIMEOUT);
+    if(sendFrameCount < 10){
+        QByteArray temp;
+        temp = make_frame(file_handler->get_next());
+        if(temp.at(1) != EOT){
+            retransmission_Timer->start(TRANSMISSION_TIMEOUT);
+        }
+        emit write_to_port_signal(temp);
+    } else {
+        CURRENT_STATE = IDLE;
+        sendFrameCount = 0;
+        send_EOT();
+        send_ENQ();
+
     }
-    emit write_to_port_signal(temp);
+
 
 }
 
@@ -149,9 +159,7 @@ void IO::resend_DATA_FRAME()
 {
     if(resend_counts > 3){
         CURRENT_STATE = IDLE;
-       // retransmission_Timer->stop();
     } else {
-
         resend_counts ++;
         qDebug()<<"resend count"<<resend_counts;
         retransmission_Timer->start(TRANSMISSION_TIMEOUT);
@@ -161,7 +169,10 @@ void IO::resend_DATA_FRAME()
 }
 
 void IO::receive_timeout(){
+
     CURRENT_STATE = IDLE;
+    IDLE_EOT_send_timer->start(EOT_TIMEOUT);
+    IDLE_EOT_received_timer->start(30000);
 }
 
 QByteArray IO::make_frame(const QByteArray &data)
@@ -201,9 +212,11 @@ void IO::read_from_port()
     master_buffer += serial_port->readAll();
     if(synDetected == false){
         while(synDetected == false && counter < master_buffer.size()){
+
             if(master_buffer[counter] == (char)SYN){
                 synDetected = true;
-                frame = master_buffer.mid(counter, master_buffer.size() - counter);
+                frame += master_buffer.mid(counter, master_buffer.size() - counter);
+                qDebug()<<"entered control frame";
             } else {
                 counter++;
             }
@@ -355,8 +368,9 @@ void IO::received_ACK(){
                 qDebug()<<"received ACK stopping timer";
             }
             dcFlip = !dcFlip;
-
+            sendFrameCount++;
             send_DATA_FRAME();
+
             break;
         case RECEIVE_FRAME:
 
@@ -379,9 +393,9 @@ void IO::process_frames(QString data){
             && (data[2] == (char)DC1 || data[2] == (char)DC2)){
         qDebug()<<"entered process frame if " <<frame.size();
         synDetected = false;
-        control_buffer = data.toUtf8();
+        control_buffer = frame.left(3);//data.toUtf8();
         qDebug() << "it's a control frame!";
-        qDebug() << data;
+        qDebug() << control_buffer;
         frame = frame.right(frame.size() - 3);
         //frame.clear();
         handle_control_buffer();
@@ -389,18 +403,10 @@ void IO::process_frames(QString data){
 
       // qDebug()<<"entered process frame else " <<frame.size();
        if(frame.size() == 1024){
-
-           if(frame.at(1) == DC1){
-               qDebug()<<"DC1";
+           if(data_frame_receive_Timer->isActive()){
+              data_frame_receive_Timer->stop();
            }
-
-           if(frame.at(1) == DC2){
-               qDebug()<<"DC2";
-           }
-            synDetected = false;
-          // if(data_frame_receive_Timer->isActive()){
-         //      data_frame_receive_Timer->stop();
-          // }
+           synDetected = false;
            if (dcFlipReceive == false && frame.at(1) == DC1) {//dc1
               data_buffer = data;
               qDebug() << "it's a data frame with DC1!";
@@ -445,7 +451,6 @@ void IO::process_frames(QString data){
 
 //TODO:
 // Deal with exceeding maximum frames 50
-//update timeouts
 //clean up
 //comment
 //user manual

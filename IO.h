@@ -29,6 +29,7 @@ private:
     bool dcFlipReceive = false;
     bool EOT_received = false;
     bool synDetected = false;
+    int sendFrameCount = 0;
 
 public:
     bool is_processed;
